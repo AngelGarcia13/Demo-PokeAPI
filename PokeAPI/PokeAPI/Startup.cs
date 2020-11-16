@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 
 namespace PokeAPI
 {
@@ -31,7 +34,11 @@ namespace PokeAPI
                     config.DefaultApiVersion = new ApiVersion(1, 0);
                 });
              
-            services.AddControllers();
+            services.AddControllers()
+                .AddXmlSerializerFormatters();
+
+            services.AddResponseCaching();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -45,7 +52,25 @@ namespace PokeAPI
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseResponseCaching();
 
+            // response caching should be done only for GET requests
+            app.Use(async (ctx, next) =>
+            {
+                if (ctx.Request.Method == "GET")
+                {
+                    ctx.Response.GetTypedHeaders().CacheControl =
+                    new CacheControlHeaderValue()
+                    {
+                        Public = true,
+                        MaxAge = TimeSpan.FromSeconds(10)
+                    };
+                    ctx.Response.Headers[HeaderNames.Vary] =
+                        new string[] { "Accept-Encoding" };
+                }
+
+                await next();
+            });
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

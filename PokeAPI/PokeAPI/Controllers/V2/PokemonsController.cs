@@ -12,10 +12,12 @@ namespace PokeAPI.Controllers.V2
 {
     [ApiVersion("2.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
+    [Produces("application/json", "application/xml")]
     [ApiController]
     public class PokemonsController : ControllerBase
     {
         // GET: api/Pokemons
+        [ResponseCache(VaryByQueryKeys = new string[] { "*" }, Duration = 30)]
         [HttpGet]
         public IEnumerable<Pokemon> GetPokemons(string searchString, string sortBy, int? pageIndex)
         {

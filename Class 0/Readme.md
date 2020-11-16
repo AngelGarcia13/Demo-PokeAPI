@@ -113,3 +113,53 @@
             }
         }
     }
+
+9 - Add Response Caching.
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+            ...
+            services.AddResponseCaching();
+
+        }
+
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            ...
+            app.UseRouting();
+            app.UseResponseCaching();
+
+            // response caching should be done only for GET requests
+            app.Use(async (ctx, next) =>
+            {
+                if (ctx.Request.Method == "GET")
+                {
+                    ctx.Response.GetTypedHeaders().CacheControl =
+                    new CacheControlHeaderValue()
+                    {
+                        Public = true,
+                        MaxAge = TimeSpan.FromSeconds(10)
+                    };
+                    ctx.Response.Headers[HeaderNames.Vary] =
+                        new string[] { "Accept-Encoding" };
+                }
+
+                await next();
+            });
+            app.UseAuthorization();
+
+            ....
+        }
+
+10 - Overwrite endpoints caching with:
+
+    [ResponseCache(VaryByQueryKeys = new string[] { "*" }, Duration = 30)]
+
+11 - Add XML Formatter Support:
+    
+    services.AddControllers()
+                    .AddXmlSerializerFormatters();
+    
+    [Produces("application/json", "application/xml")]
+    
+

@@ -11,7 +11,7 @@ using PokeAPI.Services;
 namespace PokeAPI.Controllers.V2
 {
     [ApiVersion("2.0")]
-    [Route("api/v{version:apiVersion}/[controller]")]
+    [Route("api/v2/[controller]")]
     [Produces("application/json", "application/xml")]
     [ApiController]
     public class PokemonsController : ControllerBase

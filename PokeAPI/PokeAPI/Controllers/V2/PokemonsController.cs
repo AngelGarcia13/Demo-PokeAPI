@@ -4,20 +4,47 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PokeAPI.Helpers;
 using PokeAPI.Models;
 using PokeAPI.Services;
 
-namespace PokeAPI.Controllers
+namespace PokeAPI.Controllers.V2
 {
-    [Route("api/[controller]")]
+    [ApiVersion("2.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [Produces("application/json", "application/xml")]
     [ApiController]
     public class PokemonsController : ControllerBase
     {
         // GET: api/Pokemons
+        [ResponseCache(VaryByQueryKeys = new string[] { "*" }, Duration = 30)]
         [HttpGet]
-        public IEnumerable<Pokemon> GetPokemons()
+        public IEnumerable<Pokemon> GetPokemons(string searchString, string sortBy, int? pageIndex)
         {
-            return PokemonsMockDatabase.GetPokemons();
+            //If we were pointing to a DB using EF this should be an IQueryable
+            var pokemonsQueryResult = PokemonsMockDatabase.GetPokemons().AsQueryable(); 
+            //Searching (non case-sensitive)
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                pokemonsQueryResult = pokemonsQueryResult.Where(s => s.Name.ToUpper().Contains(searchString.ToUpper())
+                                       || s.Code.ToUpper().Contains(searchString.ToUpper()));
+            }
+
+            //Sorting
+            pokemonsQueryResult = sortBy switch
+            {
+                "name" => pokemonsQueryResult.OrderBy(s => s.Name),
+                "name_desc" => pokemonsQueryResult.OrderByDescending(s => s.Name),
+                "code" => pokemonsQueryResult.OrderBy(s => s.Code),
+                "code_desc" => pokemonsQueryResult.OrderByDescending(s => s.Code),
+                _ => pokemonsQueryResult.OrderBy(s => s.Code),
+            };
+
+            //Paging
+            int pageSize = 10;
+            var paginatedResult = PaginatedList<Pokemon>.Create(
+                pokemonsQueryResult, pageIndex ?? 1, pageSize);
+            return paginatedResult;
         }
 
         // GET: api/Pokemons/5

@@ -18,8 +18,8 @@ namespace PokeAPI.Controllers.V2
         [HttpGet]
         public IEnumerable<Pokemon> GetPokemons(string searchString)
         {
-            //If we were pointing to a DB using EF this should be an IQuereable
-            var pokemonsQueryResult = PokemonsMockDatabase.GetPokemons(); 
+            //If we were pointing to a DB using EF this should be an IQueryable
+            var pokemonsQueryResult = PokemonsMockDatabase.GetPokemons().AsQueryable(); 
             //Searching (non case-sensitive)
             if (!String.IsNullOrEmpty(searchString))
             {

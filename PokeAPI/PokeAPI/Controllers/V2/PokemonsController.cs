@@ -16,9 +16,17 @@ namespace PokeAPI.Controllers.V2
     {
         // GET: api/Pokemons
         [HttpGet]
-        public IEnumerable<Pokemon> GetPokemons()
+        public IEnumerable<Pokemon> GetPokemons(string searchString)
         {
-            return PokemonsMockDatabase.GetPokemons();
+            //If we were pointing to a DB using EF this should be an IQuereable
+            var pokemonsQueryResult = PokemonsMockDatabase.GetPokemons(); 
+            //Searching (non case-sensitive)
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                pokemonsQueryResult = pokemonsQueryResult.Where(s => s.Name.ToUpper().Contains(searchString.ToUpper())
+                                       || s.Code.ToUpper().Contains(searchString.ToUpper()));
+            }
+            return pokemonsQueryResult;
         }
 
         // GET: api/Pokemons/5

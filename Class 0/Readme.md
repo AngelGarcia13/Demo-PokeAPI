@@ -46,3 +46,4 @@
 7 - Test the URL Versioning https://localhost:5001/api/v1/pokemons and https://localhost:5001/api/v2/pokemons
 
 
+8 - Let's add searching to the Get Pokemons method in the V2 controller.

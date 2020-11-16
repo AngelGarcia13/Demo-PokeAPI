@@ -10,7 +10,7 @@ using PokeAPI.Services;
 namespace PokeAPI.Controllers.V1
 {
     [ApiVersion("1.0")]
-    [Route("api/v1/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     public class PokemonsController : ControllerBase
     {

@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using PokeAPI.Models;
 using PokeAPI.Services;
 
-namespace PokeAPI.Controllers.V1
+namespace PokeAPI.Controllers.V2
 {
-    [ApiVersion("1.0")]
-    [Route("api/[controller]")]
+    [ApiVersion("2.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     public class PokemonsController : ControllerBase
     {

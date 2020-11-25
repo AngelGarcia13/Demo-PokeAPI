@@ -11,6 +11,7 @@ namespace PokeAPI.Controllers.V1
 {
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiExplorerSettings(GroupName = "v1")]
     [ApiController]
     public class PokemonsController : ControllerBase
     {

@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PokeAPI.Data;
 using PokeAPI.Helpers;
+using PokeAPI.Interfaces;
 using PokeAPI.Models;
 using PokeAPI.Services;
 
@@ -13,16 +15,29 @@ namespace PokeAPI.Controllers.V2
     [ApiVersion("2.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [Produces("application/json", "application/xml")]
+    [ApiExplorerSettings(GroupName = "v2")]
     [ApiController]
     public class PokemonsController : ControllerBase
     {
+        int pageSize = 10;
+
+        private IMessageWriter _messageWritter;
+        private IPokemonsRepository _pokemonsRepository;
+
+        public PokemonsController(IMessageWriter messageWritter, IPokemonsRepository pokemonsRepository) {
+            _messageWritter = messageWritter;
+            _pokemonsRepository = pokemonsRepository;
+        }
+
         // GET: api/Pokemons
         [ResponseCache(VaryByQueryKeys = new string[] { "*" }, Duration = 30)]
         [HttpGet]
+        [ProducesResponseType(200, Type = typeof(IEnumerable<Pokemon>))]
         public IEnumerable<Pokemon> GetPokemons(string searchString, string sortBy, int? pageIndex)
         {
+            _messageWritter.WriteMessage();
             //If we were pointing to a DB using EF this should be an IQueryable
-            var pokemonsQueryResult = PokemonsMockDatabase.GetPokemons().AsQueryable(); 
+            var pokemonsQueryResult = _pokemonsRepository.GetAllPokemons();
             //Searching (non case-sensitive)
             if (!String.IsNullOrEmpty(searchString))
             {
@@ -41,7 +56,6 @@ namespace PokeAPI.Controllers.V2
             };
 
             //Paging
-            int pageSize = 10;
             var paginatedResult = PaginatedList<Pokemon>.Create(
                 pokemonsQueryResult, pageIndex ?? 1, pageSize);
             return paginatedResult;
@@ -49,6 +63,8 @@ namespace PokeAPI.Controllers.V2
 
         // GET: api/Pokemons/5
         [HttpGet("{id}")]
+        [ProducesResponseType(200, Type = typeof(Pokemon))]
+        [ProducesResponseType(404)]
         public IActionResult GetPokemon([FromRoute] string id)
         {
             var pokemon = PokemonsMockDatabase.GetPokemons()
@@ -65,6 +81,8 @@ namespace PokeAPI.Controllers.V2
 
         // POST: api/Pokemons
         [HttpPost]
+        [ProducesResponseType(201, Type = typeof(Pokemon))]
+        [ProducesResponseType(400)]
         public IActionResult PostPokemon([FromBody] Pokemon pokemon)
         {
             if (!ModelState.IsValid)
@@ -79,6 +97,9 @@ namespace PokeAPI.Controllers.V2
 
         // PUT: api/Pokemons/5
         [HttpPut("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
         public IActionResult PutPokemon([FromRoute] string id, [FromBody] Pokemon pokemon)
         {
             if (!ModelState.IsValid)
@@ -103,6 +124,9 @@ namespace PokeAPI.Controllers.V2
 
         // DELETE: api/Pokemons/5
         [HttpDelete("{id}")]
+        [ProducesResponseType(200, Type = typeof(Pokemon))]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
         public IActionResult DeletePokemon([FromRoute] string id)
         {
             if (!ModelState.IsValid)

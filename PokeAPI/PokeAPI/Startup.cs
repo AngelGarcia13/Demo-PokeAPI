@@ -8,12 +8,16 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
+using PokeAPI.Data;
+using PokeAPI.Interfaces;
+using PokeAPI.Services;
 
 namespace PokeAPI
 {
@@ -33,10 +37,19 @@ namespace PokeAPI
                 {
                     config.AssumeDefaultVersionWhenUnspecified = true;
                     config.DefaultApiVersion = new ApiVersion(1, 0);
+                    config.ReportApiVersions = true;
                 });
              
             services.AddControllers()
                 .AddXmlSerializerFormatters();
+
+            services.AddScoped<IMessageWriter, MessageWriter>();
+
+            services.AddDbContext<AppDatabaseContext>(
+                options => options.UseSqlite("Data Source=pokemons.db"));
+
+            services.AddScoped<IPokemonsRepository, PokemonsRepository>();
+
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c =>
             {
@@ -58,7 +71,26 @@ namespace PokeAPI
                         Url = new Uri("https://example.com/license"),
                     }
                 });
+                c.SwaggerDoc("v2", new OpenApiInfo
+                {
+                    Version = "v2",
+                    Title = "Poke API",
+                    Description = "A simple example ASP.NET Core Web API",
+                    TermsOfService = new Uri("https://example.com/terms"),
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Angel Garcia",
+                        Email = string.Empty,
+                        Url = new Uri("https://twitter.com/_angelgarcia13"),
+                    },
+                    License = new OpenApiLicense
+                    {
+                        Name = "Use under LICX",
+                        Url = new Uri("https://example.com/license"),
+                    }
+                });
             });
+
             services.AddResponseCaching();
 
         }
@@ -72,6 +104,7 @@ namespace PokeAPI
             }
 
             app.UseHttpsRedirection();
+
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger();
 
@@ -80,6 +113,8 @@ namespace PokeAPI
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "PokeAPI V1");
+
+                c.SwaggerEndpoint("/swagger/v2/swagger.json", "PokeAPI V2");
             });
 
             app.UseRouting();

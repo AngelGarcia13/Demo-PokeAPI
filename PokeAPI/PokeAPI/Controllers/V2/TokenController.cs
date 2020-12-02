@@ -39,8 +39,6 @@ namespace PokeAPI.Controllers.V2
             {
                 return BadRequest(ModelState);
             }
-
-            //TODO: Validate User Credentials
             var user = await _userManager.Users.Include(x => x.RefreshTokens).FirstOrDefaultAsync(x => x.NormalizedUserName == model.UserName.ToUpper());
         
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))

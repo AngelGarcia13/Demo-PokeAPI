@@ -201,3 +201,144 @@
             }
             return Unauthorized();
         }
+
+16 - Add the Refresh Token Model:
+
+    public class RefreshToken
+    {
+        public Guid RefreshTokenId { get; set; }
+        public User User { get; set; }
+        public string UserId { get; set; }
+        public string Token { get; set; }
+        public DateTime Expires { get; set; }
+    }
+
+17 - Change the IdentityUser to a custom one:
+
+    public class User : IdentityUser
+    {
+        public List<RefreshToken> RefreshTokens { get; set; }
+    }
+
+18 - Change the DbContext (also in the Startup) to map the new entities,  then run the migrations:
+    
+public class AppDatabaseContext: IdentityDbContext<User>
+    {
+        ...
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+        ...
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<RefreshToken>().Property(p => p.RefreshTokenId)
+                .ValueGeneratedOnAdd();
+
+19 - Add a new class for handling the refresh token request:
+
+    public class RefreshTokenRequestModel
+    {
+        [Required]
+        public string RefreshToken { get; set; }
+    }
+
+20 - Change the UserManager Entity type to User in the Users controller.
+
+21 - Add the UserManager to the Token controller and add the following methods:
+
+        // POST: api/Token
+        [HttpPost]
+        public async Task<IActionResult> PostToken([FromBody] UserCredentials model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await _userManager.Users.Include(x => x.RefreshTokens).FirstOrDefaultAsync(x => x.NormalizedUserName == model.UserName.ToUpper());
+        
+            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+            {
+                //Generate Refresh Token
+                var refreshToken = GenerateRefreshToken();
+                user.RefreshTokens.Add(new RefreshToken {
+                    Expires = DateTime.Now.AddDays(30),
+                    Token = refreshToken
+                });
+                //Save Refresh Token
+                await _userManager.UpdateAsync(user);
+                //Generate JWT for the user.
+                var token = new JwtSecurityTokenHandler().WriteToken(GenerateJwt(model.UserName));
+                return Ok(new {
+                    accessToken = token,
+                    refreshToken = refreshToken,
+                    refreshTokenExpires = DateTime.Now.AddDays(30)
+                });
+            }
+            return Unauthorized();
+        }
+
+
+        // POST: api/Token/Refresh
+        [HttpPost("Refresh")]
+        public async Task<IActionResult> PostRefreshToken([FromBody] RefreshTokenRequestModel model) {
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await _userManager.Users.Include(x => x.RefreshTokens).FirstOrDefaultAsync(x => x.RefreshTokens.Any(t => t.Token == model.RefreshToken && t.Expires > DateTime.Now));
+            if (user != null)
+            {
+                //Generate Refresh Token
+                var refreshToken = GenerateRefreshToken();
+                user.RefreshTokens.Add(new RefreshToken
+                {
+                    Expires = DateTime.Now.AddDays(30),
+                    Token = refreshToken
+                });
+                //Save Refresh Token
+                await _userManager.UpdateAsync(user);
+                //Generate JWT for the user.
+                var token = new JwtSecurityTokenHandler().WriteToken(GenerateJwt(user.UserName));
+                return Ok(new
+                {
+                    accessToken = token,
+                    refreshToken = refreshToken,
+                    refreshTokenExpires = DateTime.Now.AddDays(30)
+                });
+
+            }
+            return Unauthorized();
+        }
+
+        private JwtSecurityToken GenerateJwt(string userName)
+        {
+            var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, userName)
+        };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SecurityKey"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JWT:Issuer"],
+                audience: _configuration["JWT:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(30),
+                signingCredentials: creds);
+
+            return token;
+
+        }
+
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumber);
+                
+                return Convert.ToBase64String(randomNumber) + Guid.NewGuid().ToString();
+            }
+        }

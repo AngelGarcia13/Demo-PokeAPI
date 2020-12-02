@@ -15,9 +15,9 @@ namespace PokeAPI.Controllers.V2
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<User> _userManager;
 
-        public UsersController(UserManager<IdentityUser> userManager) {
+        public UsersController(UserManager<User> userManager) {
             _userManager = userManager;
         }
 
@@ -26,10 +26,11 @@ namespace PokeAPI.Controllers.V2
         public async Task<IActionResult> Post([FromBody] UserCredentials model)
         {
             var userExists = await _userManager.FindByNameAsync(model.UserName);
+
             if (userExists != null)
                 return BadRequest("User already exists!");
 
-            IdentityUser user = new IdentityUser()
+            User user = new User()
             {
                 Email = model.UserName,
                 SecurityStamp = Guid.NewGuid().ToString(),

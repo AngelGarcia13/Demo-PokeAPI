@@ -21,6 +21,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using PokeAPI.Data;
 using PokeAPI.Interfaces;
+using PokeAPI.Models;
 using PokeAPI.Services;
 
 namespace PokeAPI
@@ -52,7 +53,7 @@ namespace PokeAPI
             services.AddDbContext<AppDatabaseContext>(
                 options => options.UseSqlite("Data Source=pokemons.db"));
 
-            services.AddIdentity<IdentityUser, IdentityRole>()
+            services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<AppDatabaseContext>();
 
             //JWT Config

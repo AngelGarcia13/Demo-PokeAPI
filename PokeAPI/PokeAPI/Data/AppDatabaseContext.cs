@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -6,9 +7,10 @@ using PokeAPI.Models;
 
 namespace PokeAPI.Data
 {
-    public class AppDatabaseContext: IdentityDbContext<IdentityUser>
+    public class AppDatabaseContext: IdentityDbContext<User>
     {
         public DbSet<Pokemon> Pokemons { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         public AppDatabaseContext(DbContextOptions options) : base(options)
         {
@@ -18,6 +20,9 @@ namespace PokeAPI.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<RefreshToken>().Property(p => p.RefreshTokenId)
+                .ValueGeneratedOnAdd();
 
             modelBuilder.Entity<Pokemon>()
                 .HasKey(p => p.Code);

@@ -2,17 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using PokeAPI.Data;
@@ -47,6 +51,26 @@ namespace PokeAPI
 
             services.AddDbContext<AppDatabaseContext>(
                 options => options.UseSqlite("Data Source=pokemons.db"));
+
+            services.AddIdentity<IdentityUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppDatabaseContext>();
+
+            //JWT Config
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = Configuration["JWT:Issuer"],
+                        ValidAudience = Configuration["JWT:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(Configuration["JWT:SecurityKey"]))
+                    };
+                });
 
             services.AddScoped<IPokemonsRepository, PokemonsRepository>();
 
@@ -87,6 +111,24 @@ namespace PokeAPI
                     {
                         Name = "Use under LICX",
                         Url = new Uri("https://example.com/license"),
+                    }
+                });
+                c.AddSecurityDefinition("Bearer", //Name the security scheme
+                    new OpenApiSecurityScheme
+                    {
+                        Description = "JWT Authorization header using the Bearer scheme.",
+                        Type = SecuritySchemeType.Http, //We set the scheme type to http since we're using bearer authentication
+                        Scheme = "bearer" //The name of the HTTP Authorization scheme to be used in the Authorization header. In this case "bearer".
+                    }
+                );
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement{
+                    {
+                        new OpenApiSecurityScheme{
+                            Reference = new OpenApiReference{
+                                Id = "Bearer", //The name of the previously defined security scheme.
+                                Type = ReferenceType.SecurityScheme
+                            }
+                        },new List<string>()
                     }
                 });
             });
@@ -137,6 +179,9 @@ namespace PokeAPI
 
                 await next();
             });
+
+            app.UseAuthentication();
+
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

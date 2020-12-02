@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PokeAPI.Data;
@@ -12,6 +13,7 @@ using PokeAPI.Services;
 
 namespace PokeAPI.Controllers.V2
 {
+    [Authorize]
     [ApiVersion("2.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [Produces("application/json", "application/xml")]
